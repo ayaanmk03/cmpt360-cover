@@ -33,3 +33,13 @@ R = [2, 2, 1]
 The watering intervals are `[1, 5]`, `[5, 9]`, and `[11, 13]`. Each orange
 tree lies in exactly one interval, so all three sprinklers are required. The
 selected sprinklers water the cacti at 4 and 8, giving an optimal count of 2.
+
+## Runtime benchmark
+
+From the repository root, run `python3 -B -m experiments.run_experiments`.
+The benchmark varies sprinkler count with 20 trees and 20 cacti, then varies
+both plant counts with 10 sprinklers. Four fixed sprinklers make each instance
+feasible. Each setting uses three seeds. For each seed, the CSV records the
+median of three timed calls per algorithm in milliseconds, excluding input
+generation. The script checks that both optimal counts agree before writing
+`experiments/results/runtime.csv`. Rerunning replaces the timings.

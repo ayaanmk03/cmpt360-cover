@@ -21,18 +21,39 @@ All positions lie on the same horizontal line.
 Sprinkler `i` waters every position from `S[i] - R[i]` to `S[i] + R[i]`,
 including both endpoints.
 
-## Example
+## Run both solvers
+
+Open a terminal in the folder containing `baseline.py` and `fasterAlgo.py`.
+Start Python with `python3`, then paste the example below. Both solvers use
+only the Python standard library.
 
 ```python
+from baseline import exhaustive_cover
+from fasterAlgo import faster_cover
+
 O = [2, 6, 11]
 C = [4, 8, 14]
 S = [3, 7, 12]
 R = [2, 2, 1]
+
+print(exhaustive_cover(O, C, S, R))
+print(faster_cover(O, C, S, R))
 ```
+
+Both calls print `([3, 7, 12], 2)` (selected sprinkler positions, number of
+watered cacti). An infeasible input returns `None`.
 
 The watering intervals are `[1, 5]`, `[5, 9]`, and `[11, 13]`. Each orange
 tree lies in exactly one interval, so all three sprinklers are required. The
 selected sprinklers water the cacti at 4 and 8, giving an optimal count of 2.
+
+## Run the tests
+
+Exit Python with `quit()`, then run this command in the same folder.
+
+```sh
+python3 -B -m unittest discover -s tests -v
+```
 
 ## Runtime benchmark
 

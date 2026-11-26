@@ -1,3 +1,5 @@
+"""Solve the Cover problem using dynamic programming over sprinkler intervals."""
+
 from bisect import bisect_left, bisect_right
 from math import inf
 
@@ -5,7 +7,18 @@ from baseline import sprinkler_intervals
 
 
 def faster_cover(oranges, cacti, positions, radii):
-    """Return (selected positions, watered cactus count), or None if infeasible."""
+    """Cover every orange tree while minimizing the number of cacti watered.
+
+    oranges and cacti have the plants positions. Each sprinkler position is
+    paired with the radius at the same index and waters both endpoints of
+    its interval. Process intervals in order of their right endpoints,
+    counting only newly watered cacti when extending a partial cover.
+
+    Return (selected positions in input order, minimum cactus count).
+    Return ([], 0) for no orange trees or None if full coverage is impossible.
+    Raise ValueError if positions and radii differ in length or a radius is
+    negative.
+    """
     intervals = sprinkler_intervals(positions, radii)
     if not oranges:
         return [], 0

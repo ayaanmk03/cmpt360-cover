@@ -43,3 +43,8 @@ feasible. Each setting uses three seeds. For each seed, the CSV records the
 median of three timed calls per algorithm in milliseconds, excluding input
 generation. The script checks that both optimal counts agree before writing
 `experiments/results/runtime.csv`. Rerunning replaces the timings.
+
+To plot the saved timings, use a Python environment with Matplotlib installed
+and run `python3 -B -m experiments.plot_runtime` from the repository root.
+The figure at `experiments/results/runtime_comparison.png` shows the median
+across seeds for each setting. Both panels use the same logarithmic time axis.

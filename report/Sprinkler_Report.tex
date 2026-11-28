@@ -1,0 +1,108 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,graphicx}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\title{Sprinkler Selection Algorithms}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+The goal is to water every orange tree while minimizing the number of distinct cacti watered. A cactus reached by several sprinklers counts once. Let $O$ and $C$ be the tree and cactus positions, and let $S$ and $R$ be the sprinkler positions and radii. Sprinkler $j$ waters the closed interval $[L_j,U_j]=[S_j-R_j,S_j+R_j]$.
+
+\section{Baseline algorithm}
+The baseline checks sprinkler subsets in increasing order of size. It skips a subset as soon as it finds an uncovered tree.
+\begin{verbatim}
+best = None
+for size from 0 through the number of sprinklers:
+    for each subset A of that size:
+        if any tree is outside every interval in A: continue
+        count = number of cacti in at least one interval in A
+        if best is None or count < best.count:
+            best = (positions of sprinklers in A, count)
+            if count == 0: return best
+return best
+\end{verbatim}
+\textbf{Correctness.} After each subset, best holds the lowest cactus count among the feasible subsets examined and a selection achieving it. Initially there are no feasible subsets examined. Skipping an uncovered tree's subset discards only an infeasible solution. For every feasible subset, each cactus contributes exactly once if any selected interval reaches it. Keeping the smaller count therefore preserves the claim. Every subset occurs once, so the final answer is optimal. A zero count is already optimal and justifies the early return. With no trees, the empty subset gives zero. If no cover exists, the result is \texttt{None}.
+
+\textbf{Complexity.} Let $k$, $o$, and $c$ be the numbers of sprinklers, orange trees, and cacti. Building the intervals takes $O(k)$ time. Each of up to $2^k$ subsets can require up to $k$ interval checks per plant, giving a worst-case time bound of $O(2^k k(o+c))$ for $k\ge1$ and $o+c\ge1$. Generating one subset at a time uses $O(k)$ auxiliary space for the intervals, iterator, and best selection.
+
+\newpage
+\section{Faster algorithm}
+If a selected interval lies inside another, removing it leaves the watered area unchanged. Thus some optimal cover, ordered by right endpoint, has strictly increasing left and right endpoints. The dynamic program uses this order to extend a cover one sprinkler at a time.
+
+\textbf{State.} $D_j$ is the minimum cactus count for a chain ending at $j$ that covers every tree through $U_j$. Unreachable states have cost $\infty$. For each interval, binary search on sorted positions gives $T_j^-$ and $T_j^+$, the numbers of trees strictly before $L_j$ and at or before $U_j$, respectively. Define $C_j^-$ and $C_j^+$ the same way for cacti.
+
+\textbf{Recurrence.} Interval $j$ can start a cover when $T_j^-=0$, with cost $C_j^+-C_j^-$. It can extend a reachable interval $i$ when $L_i<L_j$, $U_i<U_j$, and $T_i^+\ge T_j^-$. The last condition allows a gap only if it contains no tree. The candidate cost is
+\[
+ D_i+C_j^+-\max(C_j^-,C_i^+).
+\]
+For disjoint intervals, all cacti in $j$ are new. For overlapping intervals, only cacti strictly beyond $U_i$ are new, so a shared endpoint counts once.
+
+\textbf{Pseudocode.}
+\begin{verbatim}
+if there are no trees: return ([], 0)
+sort intervals by right endpoint, retaining original indices
+sort plants and compute the four counts for each interval
+initialize all costs to infinity and all parents to None
+for each interval j in order:
+    if j can start a cover: set D[j] to its starting cost
+    for each earlier reachable i that can extend to j:
+        compute the candidate cost using the recurrence
+        if candidate < D[j]: update D[j] and set parent[j] = i
+choose a cheapest reachable j covering through the last tree
+if none exists: return None
+follow parents and return selected positions in input order, D[j]
+\end{verbatim}
+
+\newpage
+\subsection{Correctness and complexity}
+A single interval covers every tree through its right endpoint exactly when no tree precedes its left endpoint. The starting cost counts all cacti in the closed interval, establishing the base case.
+
+Assume the earlier states have their minimum costs. A transition from $i$ to $j$ preserves coverage: the prefix covers trees through $U_i$, the gap condition excludes missed trees, and $j$ covers the rest through $U_j$. Any cactus in $j$ watered earlier lies between $L_j$ and $U_i$. Since $L_i<L_j$, that cactus also lies in $i$. The recurrence therefore charges exactly the newly watered cacti, regardless of which prefix ends at $i$.
+
+Conversely, take an optimal cover with contained intervals removed. For consecutive intervals $i,j$, its prefix ending at $i$ covers every tree through $U_i$: any such tree reached by a later interval also lies inside $i$. No tree can lie in a gap before $j$, since later intervals start still farther right. The algorithm thus considers every consecutive pair in this cover. Replacing a prefix by the cheapest prefix ending at $i$ preserves coverage and adds the same cost for $j$. By induction, each finite state attains its minimum. The cheapest state reaching the last tree gives a global optimum, and its parent links recover the selection. If no such state exists, full coverage is impossible.
+
+Sorting the plants costs $O(o\log(o+1)+c\log(c+1))$. Sorting intervals and restoring input order each cost $O(k\log(k+1))$. Computing the four counts costs $O(k\log(o+1)+k\log(c+1))$. The dynamic program checks at most $k(k-1)/2$ pairs in constant time per pair. The total time bound simplifies to
+\[
+ O(k^2+o\log(o+1)+c\log(c+1)).
+\]
+For example, when $o\le k$, the tree searches cost $O(k^2)$; otherwise sorting the trees absorbs their cost. The same reasoning applies to cacti. Sorted plant positions and a constant number of entries per sprinkler use $O(k+o+c)$ auxiliary space.
+
+\newpage
+\section{Experimental evaluation}
+Both algorithms ran on the same inputs. Four fixed sprinklers guaranteed full coverage. Each setting used three seeds and three runs per algorithm per seed. Figure 1 shows the median across seeds of the three-run medians. Both algorithms returned the same minimum cactus count in every comparison.
+
+With 20 trees and 20 cacti, increasing the sprinkler count from 6 to 14 raised exhaustive runtime from 0.142 to 48.4 ms (about 342 times), and dynamic programming runtime from 0.0074 to 0.0152 ms (about twice). Each extra sprinkler doubles the number of possible subsets, while the dynamic program checks interval pairs.
+
+With 10 sprinklers, increasing the tree and cactus counts from 5 each to 80 each raised the respective times from 1.34 to 4.74 ms and from 0.0085 to 0.0145 ms. More plants increased coverage-checking work while the number of subsets and interval pairs stayed fixed. The largest tested sprinkler count was 14.
+\begin{center}
+\includegraphics[width=0.88\linewidth]{runtime_comparison.png}
+
+\small Figure 1. Median runtime as sprinkler count (left) and plant counts (right) increase. Both panels use a logarithmic time axis.
+\end{center}
+
+\section{Conclusion}
+Exhaustive search provided a reference for checking the faster algorithm. Using interval order to count newly watered cacti gave the same optimum with lower measured runtimes across the tested settings.
+
+\section*{AI assistance}
+I used ChatGPT to help develop and implement both algorithms, derive the recurrence and correctness arguments, write tests and documentation, create the benchmark and plot, and draft and edit the report.
+
+\clearpage
+\section*{Appendix A --- Development and testing}
+GitHub repository: \url{https://github.com/ayaanmk03/cmpt360-cover}
+
+\begin{center}
+\includegraphics[width=0.90\linewidth,height=0.32\textheight,keepaspectratio]{commits.png}
+
+Figure A1. GitHub commit history showing development of the algorithms, tests, benchmarks, and documentation.
+\end{center}
+
+The test suite was run with \texttt{python3 -B -m unittest discover -s tests -v}.
+\begin{center}
+\includegraphics[width=0.90\linewidth,height=0.32\textheight,keepaspectratio]{tests.png}
+
+Figure A2. All 17 tests passed, including the comparison against exhaustive search on 300 seeded cases.
+\end{center}
+\end{document}
